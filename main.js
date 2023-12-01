@@ -10,8 +10,10 @@ let height = window.innerHeight;
 //-- GUI PARAMETERS
 var gui;
 const parameters = {
-  resolutionX: 3,
-  rotationX: 100
+  Cubes: 10,
+  Distance: 0,
+  Size: 1,
+  Color: 'blue',
 }
 
 //-- SCENE VARIABLES
@@ -26,19 +28,23 @@ var directionalLight;
 //-- GEOMETRY PARAMETERS
 //Create an empty array for storing all the cubes
 let sceneCubes = [];
-let resX = parameters.resolutionX;
-let rotX = parameters.rotationX;
+let lastCubes = parameters.Cubes;
+let lastDistance = parameters.Distance;
+let lastSize = parameters.Size;
+let lastColor = parameters.Color;
 
 function main(){
   //GUI
   gui = new GUI;
-  gui.add(parameters, 'resolutionX', 1, 10, 1);
-  gui.add(parameters, 'rotationX', 0, 180);
+  gui.add(parameters, 'Cubes', 1, 100, 1);
+  gui.add(parameters, 'Distance', 0, 10, 0.5);
+  gui.add(parameters, 'Size', 1, 20, 1);
+  gui.add(parameters, 'Color',['red', 'green', 'blue'])
 
   //CREATE SCENE AND CAMERA
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera( 15, width / height, 0.1, 100);
-  camera.position.set(10, 10, 10)
+  camera = new THREE.PerspectiveCamera( 15, width / height, 0.1, 5000);
+  camera.position.set(50, 50, 50)
 
   //LIGHTINGS
   ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -53,7 +59,6 @@ function main(){
   //GEOMETRY INITIATION
   // Initiate first cubes
   createCubes();
-  rotateCubes();
 
   //RESPONSIVE WINDOW
   window.addEventListener('resize', handleResize);
@@ -78,55 +83,63 @@ function main(){
 //GEOMETRY FUNCTIONS
 // Create Cubes
 function createCubes(){
-  for(let i=0; i<resX; i++){
-    const geometry = new THREE.BoxGeometry(0.1, 1,1);
+  let currentCubePosition = [0,0,0];
+  let lastCubePosition = [0,0,0];
+  let lastCubeSize;
+  for(let i=0; i<lastCubes; i++){
+    let scaleFactor = Math.random() + 0.5;
+    const geometry = new THREE.BoxGeometry(parameters.Size * scaleFactor, parameters.Size * scaleFactor, parameters.Size * scaleFactor);
     const material = new THREE.MeshPhysicalMaterial();
-    material.color = new THREE.Color(0xffffff);
-    material.color.setRGB(0,0,Math.random());
+
+    if (parameters.Color == 'red') {
+      material.color.setRGB((parameters.Cubes / 255) * i, 0, 0);
+    } else if (parameters.Color == 'green') {
+      material.color.setRGB(0, (parameters.Cubes / 255) * i, 0);
+    } else if (parameters.Color == 'blue') {
+      material.color.setRGB(0, 0, (parameters.Cubes / 255) * i);
+    }
 
     const cube = new THREE.Mesh(geometry, material);
-    cube.position.set(i*0.1, 0, 0);
+    let currentCubeSize = parameters.Size * scaleFactor;
+    if(i==0){
+      lastCubeSize = currentCubeSize;
+    }
+    let direction = Math.floor(Math.random() * 3);
+    currentCubePosition = lastCubePosition;
+    currentCubePosition[direction] = lastCubePosition[direction]+lastCubeSize/2 + currentCubeSize/2 + parameters.Distance;
+    cube.position.set(currentCubePosition[0], currentCubePosition[1], currentCubePosition[2]);
     cube.name = "cube " + i;
     sceneCubes.push(cube);
-
+    lastCubePosition = currentCubePosition;
+    lastCubeSize = currentCubeSize;
     scene.add(cube);
   }
 }
 
-//Rotate Cubes
-function rotateCubes(){
-  sceneCubes.forEach((element, index)=>{
-    let scene_cube = scene.getObjectByName(element.name);
-    let radian_rot = (index*(rotX/resX)) * (Math.PI/180);
-    scene_cube.rotation.set(radian_rot, 0, 0)
-    rotX = parameters.rotationX;
-  })
-}
 
 //Remove 3D Objects and clean the caches
-function removeObject(sceneObject){
+function removeObject(sceneObject) {
   if (!(sceneObject instanceof THREE.Object3D)) return;
 
-  //Remove the geometry to free GPU resources
-  if(sceneObject.geometry) sceneObject.geometry.dispose();
+  if (sceneObject.geometry) sceneObject.geometry.dispose();
 
-  //Remove the material to free GPU resources
-  if(sceneObject.material){
-    if (sceneObject.material instanceof Array) {
+  if (sceneObject.material) {
+    if (Array.isArray(sceneObject.material)) {
       sceneObject.material.forEach(material => material.dispose());
     } else {
-        sceneObject.material.dispose();
+      sceneObject.material.dispose();
     }
   }
 
-  //Remove object from scene
-  sceneObject.removeFromParent();
+  scene.remove(sceneObject); // Properly remove object from the scene
 }
 
 //Remove the cubes
 function removeCubes(){
-  resX = parameters.resolutionX;
-  rotX = parameters.rotationX;
+  lastCubes = parameters.Cubes;
+  lastDistance = parameters.Distance;
+  lastSize = parameters.Size;
+  lastColor = parameters.Color;
 
   sceneCubes.forEach(element =>{
     let scene_cube = scene.getObjectByName(element.name);
@@ -149,21 +162,21 @@ function handleResize() {
 
 //ANIMATE AND RENDER
 function animate() {
-	requestAnimationFrame( animate );
- 
+  requestAnimationFrame(animate);
+
   control.update();
 
-  if(resX != parameters.resolutionX){
+  if (
+    lastCubes != parameters.Cubes ||
+    lastSize != parameters.Size ||
+    lastDistance != parameters.Distance ||
+    lastColor != parameters.Color
+  ) {
     removeCubes();
     createCubes();
-    rotateCubes();
   }
 
-  if (rotX != parameters.rotationX){
-    rotateCubes();
-  }
- 
-	renderer.render( scene, camera );
+  renderer.render(scene, camera);
 }
 //-----------------------------------------------------------------------------------
 // CLASS
