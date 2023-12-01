@@ -13,7 +13,7 @@ const parameters = {
   Cubes: 10,
   Distance: 0,
   Size: 1,
-  Color: 'blue',
+  Color: 'red',
 }
 
 //-- SCENE VARIABLES

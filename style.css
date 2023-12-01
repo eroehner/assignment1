@@ -10,6 +10,6 @@ body {
   padding: 0;
   width: 100vw;
   height: 100vh;
-  background: color(0x62C6F2);
+  background: linear-gradient(#4B9CD3, #4B9CD3);
   overflow: hidden;
 }
